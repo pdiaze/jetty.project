@@ -95,7 +95,7 @@ public abstract class AbstractHTTP2ServerConnectionFactory extends AbstractConne
         installBean(sessionContainer);
         this.httpConfiguration = Objects.requireNonNull(httpConfiguration);
         installBean(httpConfiguration);
-        setInputBufferSize(Frame.DEFAULT_MAX_SIZE + Frame.HEADER_LENGTH);
+        setInputBufferSize(Frame.DEFAULT_MAX_SIZE);
         setUseInputDirectByteBuffers(httpConfiguration.isUseInputDirectByteBuffers());
         setUseOutputDirectByteBuffers(httpConfiguration.isUseOutputDirectByteBuffers());
         setInputBufferSize(httpConfiguration.getInputBufferSize());
@@ -320,7 +320,10 @@ public abstract class AbstractHTTP2ServerConnectionFactory extends AbstractConne
         ServerSessionListener listener = newSessionListener(connector, endPoint);
 
         Generator generator = new Generator(connector.getByteBufferPool(), isUseOutputDirectByteBuffers(), getMaxHeaderBlockFragment());
-        generator.getHpackEncoder().setMaxHeaderListSize(getHttpConfiguration().getResponseHeaderSize());
+        int maxResponseHeaderSize = getHttpConfiguration().getMaxResponseHeaderSize();
+        if (maxResponseHeaderSize < 0)
+            maxResponseHeaderSize = getHttpConfiguration().getResponseHeaderSize();
+        generator.getHpackEncoder().setMaxHeaderListSize(maxResponseHeaderSize);
 
         FlowControlStrategy flowControl = getFlowControlStrategyFactory().newFlowControlStrategy();
 

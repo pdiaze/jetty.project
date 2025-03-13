@@ -79,6 +79,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class HttpConnectionTest
 {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HttpConnectionTest.class);
+
+    private final HttpConfiguration httpConfig = new HttpConfiguration();
     private Server _server;
     private LocalConnector _connector;
 
@@ -87,11 +89,11 @@ public class HttpConnectionTest
     {
         _server = new Server();
 
-        HttpConfiguration config = new HttpConfiguration();
-        config.setRequestHeaderSize(1024);
-        config.setResponseHeaderSize(1024);
-        config.setSendDateHeader(true);
-        HttpConnectionFactory http = new HttpConnectionFactory(config);
+        httpConfig.setRequestHeaderSize(1024);
+        httpConfig.setResponseHeaderSize(1024);
+        httpConfig.setMaxResponseHeaderSize(1024);
+        httpConfig.setSendDateHeader(true);
+        HttpConnectionFactory http = new HttpConnectionFactory(httpConfig);
 
         _connector = new LocalConnector(_server, http, null);
         _connector.setIdleTimeout(5000);
@@ -1208,7 +1210,7 @@ public class HttpConnectionTest
     @Test
     public void testAllowedLargeResponse() throws Exception
     {
-        _connector.getBean(HttpConnectionFactory.class).getHttpConfiguration().setResponseHeaderSize(16 * 1024);
+        _connector.getBean(HttpConnectionFactory.class).getHttpConfiguration().setMaxResponseHeaderSize(16 * 1024);
         _connector.getBean(HttpConnectionFactory.class).getHttpConfiguration().setOutputBufferSize(8 * 1024);
 
         byte[] bytes = new byte[12 * 1024];
@@ -1539,6 +1541,8 @@ public class HttpConnectionTest
             
             """;
         _connector.getBean(HttpConnectionFactory.class).getHttpConfiguration().setUriCompliance(UriCompliance.DEFAULT);
+        assertThat(_connector.getResponse(request), startsWith("HTTP/1.1 400"));
+        _connector.getBean(HttpConnectionFactory.class).getHttpConfiguration().setUriCompliance(UriCompliance.JETTY_11);
         assertThat(_connector.getResponse(request), startsWith("HTTP/1.1 400"));
         _connector.getBean(HttpConnectionFactory.class).getHttpConfiguration().setUriCompliance(UriCompliance.LEGACY);
         assertThat(_connector.getResponse(request), startsWith("HTTP/1.1 200"));
